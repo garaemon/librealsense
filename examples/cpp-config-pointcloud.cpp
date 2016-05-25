@@ -142,13 +142,14 @@ int main(int argc, char * argv[]) try
 
     rs::context ctx;
     if(ctx.get_device_count() < 1) throw std::runtime_error("No device found. Is it plugged in?");
-
+    std::cout << "opening device" << std::endl;
     rs::device * dev = ctx.get_device(0);
+    std::cout << "opended device" << std::endl;
     dev->enable_stream(rs::stream::depth, rs::preset::best_quality);
     dev->enable_stream(rs::stream::color, rs::preset::best_quality);
     dev->enable_stream(rs::stream::infrared, rs::preset::best_quality);
     try { dev->enable_stream(rs::stream::infrared2, rs::preset::best_quality); } catch(...) {}
-
+    
     state app_state = {0, 0, 0, 0, false, {rs::stream::color, rs::stream::depth, rs::stream::infrared}, 0, dev};
     if(dev->is_stream_enabled(rs::stream::infrared2)) app_state.tex_streams.push_back(rs::stream::infrared2);
 
@@ -166,6 +167,7 @@ int main(int argc, char * argv[]) try
         options.push_back(o);
     }
     double dc_preset = 0, iv_preset = 0;
+    dev->start();
 
     GLFWwindow * win = glfwCreateWindow(640, 480, "pointcloud", 0, 0);
     glfwSetWindowUserPointer(win, &app_state);
@@ -220,8 +222,12 @@ int main(int argc, char * argv[]) try
     while(!glfwWindowShouldClose(win_2d) &&
           !glfwWindowShouldClose(win))
     {
+        glfwMakeContextCurrent(win_2d);
+        
         glfwPollEvents();
-        if(dev->is_streaming()) dev->wait_for_frames();
+        if(dev->is_streaming()) {
+            dev->wait_for_frames();
+        }
 
         int w, h;
         glfwGetFramebufferSize(win_2d, &w, &h);
@@ -294,9 +300,9 @@ int main(int argc, char * argv[]) try
         g.click = false;
         if(!g.mouse_down) g.clicked_id = 0;
 
-
+        glfwMakeContextCurrent(win);
         // pointcloud
-                auto t1 = std::chrono::high_resolution_clock::now();
+        auto t1 = std::chrono::high_resolution_clock::now();
         time += std::chrono::duration<float>(t1-t0).count();
         t0 = t1;
         ++frames;
